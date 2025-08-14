@@ -1,0 +1,92 @@
+---
+title: "CounselingTopicModeling"
+author: "Michael Hekmat"
+date: "2024-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(topicmodels)
+library(tm)
+data("AssociatedPress")
+inspect(AssociatedPress[1:5, 1:5])
+
+
+aptopicmodel<-LDA(AssociatedPress,
+                    k=10,
+                    control = list(seed = 321))
+```
+
+
+```{r}
+#https://www.youtube.com/watch?v=4YyoMGv1nkc&t=256s is the video for tutorial u may have to parse ur data first thoooooos
+library(quanteda)
+library(topicmodels)
+
+# Reshape the corpus into paragraphs
+corp <- corpus_reshape(data_corpus_inaugural, to = "paragraphs")
+
+# Tokenize the corpus and remove punctuation
+toks <- tokens(corp, remove_punct = TRUE)
+
+# Create the document-feature matrix from the tokens
+dfm <- dfm(toks)
+
+# Remove stopwords
+dfm <- dfm_remove(dfm, stopwords("english"))
+
+# Trim the document-feature matrix based on document frequency
+dfm <- dfm_trim(dfm, min_docfreq = 5)
+
+library(topicmodels)
+dtm = convert(dfm, to = "topicmodels") 
+set.seed(1)
+
+m = LDA(dtm, method = "Gibbs", k = 10,  control = list(alpha = 0.1))
+m
+
+terms(m,5)
+topic = 6
+words = posterior(m)$terms[topic, ]
+topwords = head(sort(words,decreasing = T), n = 50)
+head(topwords) # this gives you same as waht we see in above chunk but with values attached to them
+
+plot(topwords)
+
+library(wordcloud)
+wordcloud(names(topwords), topwords)
+```
+
+
+```{r}
+topic.docs = posterior(m)$topics[, topic]  #rows topics and col topics
+topic.docs = sort(topic.docs, decreasing=T) #sorts in factor w highest scoring document
+head(topic.docs) #95 percent of the docuent are about eisenhower
+```
+
+
+```{r}
+topdoc = names(topic.docs)[1] #getting document names of 1st one
+topdoc_corp = corp[docnames(corp) == topdoc]
+as.character(topdoc_corp) # gives us document name w text, we cna read and see documents to get a bit more of a feel of what this document is about
+```
+
+**as a researcher you should find out what these topics represent, to investigate how these topics may differ between groups. across time does this topic change at all?**
+```{r}
+docs = docvars(dfm)[match(rownames(dtm), docnames(dfm)),]
+head(docs)
+tpp = aggregate(posterior(m)$topics, by=docs["President"], mean) #aggregating rows by presidents and taking mean values
+rownames(tpp) = tpp$President
+heatmap(as.matrix(tpp[-1])) #some idea of topic clusters among recent v older presidents. some topics from oldeer and some from
+```
+
+
+
+
+
+
+
